@@ -1,0 +1,8 @@
+{
+    "require": {
+        "smarty/smarty": "3.*",
+        "twitter/bootstrap": "4.3.*",
+		"adodb/adodb-php": "5.*",
+		"bit55/litero": "0.9.*"
+    }
+}
