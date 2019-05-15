@@ -10,6 +10,10 @@ class Base
     static $sContent;
     static $aPage;
 
+    static $iRememberDays = 30;
+    static $aUser;
+    static $sWhere;
+
     public function __construct()
     {
 
@@ -19,11 +23,13 @@ class Base
 
         include('./vendor/adodb/adodb-php/adodb.inc.php');
         self::$oDb = &ADONewConnection('mysqlt', 'transaction : pear');
-        self::$oDb->Connect('127.0.0.1:3306','root','123456','test');
+        self::$oDb->Connect('127.0.0.1:3306','root','','test');
         self::$oDb->_Execute("/*!40101 SET NAMES 'utf8' */");
         self::$oDb->SetFetchMode(ADODB_FETCH_ASSOC);
         date_default_timezone_set('Europe/Kiev');
         self::$oDb->_Execute("SET `time_zone`='".date('P')."'");
+
+        // self::$oDb->debug=true;
 
 
         require './vendor/smarty/smarty/libs/Smarty.class.php';
@@ -79,73 +85,128 @@ class Base
     
     public static function Logout()
     {
-        setcookie("user_auth_signature", "",time()+60*60*24*$this->iRememberDays,'/');
-        $_COOKIE['user_auth_signature']="";
-        setcookie("user_auth_session", "",time()+60*60*24*$this->iRememberDays,'/');
-        $_COOKIE['user_auth_session']="";
+        setcookie("user_Base_signature", "",time()+60*60*24*$this->iRememberDays,'/');
+        $_COOKIE['user_Base_signature']="";
+        setcookie("user_Base_session", "",time()+60*60*24*$this->iRememberDays,'/');
+        $_COOKIE['user_Base_session']="";
         $_SESSION['user']="";
         $_SESSION['user']=array();
         if ($_SESSION['user']['login']) {
-            Base::$db->Execute("update user set cookie='' where login='".$_SESSION['user']['login']."'");
+            Base::$oDb->Execute("update user set cookie='' where login='".$_SESSION['user']['login']."'");
         }
     }
     
     public static function IsAuth()
     {
-        if (($_SESSION['user'] && $_SESSION['user']['isUser']) || Auth::IsValidCookie($_COOKIE['user_auth_signature'])) {
-            Auth::$aUser=Auth::GetUserProfile($_SESSION['user']['id'],$_SESSION['user']['type_']);
-            Auth::$sWhere=" and id_user='".Auth::$aUser[id]."'";
+        if (($_SESSION['user'] && $_SESSION['user']['isUser']) || Base::IsValidCookie($_COOKIE['user_Base_signature'])) {
+            Base::$aUser=Base::GetUserProfile($_SESSION['user']['id']);
+            Base::$sWhere=" and id_user='".Base::$aUser[id]."'";
             return true;
         }
         return false;
     }
     
-    function IsValidCookie($sCookie)
+    public static function IsValidCookie($sCookie)
     {
-        if (Auth::$iRememberDays<=1) Auth::$iRememberDays=90;
+        if (Base::$iRememberDays<=1) Base::$iRememberDays=90;
     
         if (empty($sCookie)) return false;
     
         $sQuery="select * from user where cookie='$sCookie' and visible='1'";
-        $aRow=Db::GetRow($sQuery);
+        $aRow=Base::$oDb->GetRow($sQuery);
     
-        if($sCookie!==md5(Base::$sProjectName.$aRow['login'].$aRow['password'].$aRow['id']))
-            //if($sCookie!==md5(Base::$sProjectName.$aRow['login'].$aRow['id']))
+        if($sCookie!==md5($aRow['login'].$aRow['password'].$aRow['id']))
                 return false;
     
             if ($aRow) {
-                Auth::UpdateLastVisit($aRow);
-                $aUser=Auth::GetUserProfile($aRow['id'],$aRow['type_']);
-    
-                //			$oForum = new Forum();
-                //			$oForum->LoginForum($aUser);
+                $aUser=Base::GetUserProfile($aRow['id']);
             }
     
             if ($aUser['id']) {
-                Auth::RefreshSession($aUser);
-                Auth::RefreshCookie($aUser['login'],$aUser['password'],$aUser['id']);
+                Base::RefreshSession($aUser);
+                Base::RefreshCookie($aUser['login'],$aUser['password'],$aUser['id']);
                 return true;
             }
             return false;
     }
     
-    function RefreshSession($aUser)
+    public static function RefreshSession($aUser)
     {
         $_SESSION['user']['isUser'.Base::$sProjectName]=true;
         $_SESSION['user']['isGuest'.Base::$sProjectName]=false;
         foreach ($aUser as $key => $value) $_SESSION['user'][$key]=$value;
-        setcookie("user_auth_session", "1",time()+60*60*24*Auth::$iRememberDays);
+        setcookie("user_Base_session", "1",time()+60*60*24*Base::$iRememberDays);
     }
     //---------------------------------------------------------------------------------
-    function RefreshCookie($sLogin,$sPassword,$iIdCustomer)
+    public static function RefreshCookie($sLogin,$sPassword,$iIdCustomer)
     {
-        if (Auth::$iRememberDays<=10) Auth::$iRememberDays=90;
+        if (Base::$iRememberDays<=10) Base::$iRememberDays=90;
     
-        $sNewCookieValue=md5(Base::$sProjectName.$sLogin.$sPassword.$iIdCustomer);
-        //$sNewCookieValue=md5(Base::$sProjectName.$sLogin.$iIdCustomer);
-        setcookie("user_auth_signature", $sNewCookieValue,time()+60*60*24*Auth::$iRememberDays,'/');
-        $_COOKIE[user_auth_signature] = $sNewCookieValue;
+        $sNewCookieValue=md5($sLogin.$sPassword.$iIdCustomer);
+        setcookie("user_Base_signature", $sNewCookieValue,time()+60*60*24*Base::$iRememberDays,'/');
+        $_COOKIE[user_Base_signature] = $sNewCookieValue;
         return $sNewCookieValue;
+    }
+
+    public static function GetUserProfile($iId) {
+        return Base::$oDb->GetRow("select * from user where id='".$iId."' ");
+    }
+
+    public static function Login($sLogin,$sPassword)
+    {
+        $aUser=Base::IsUser($sLogin,$sPassword,$bIgnoreVisible,$bSalt);
+       
+        if (!$aUser['id']) {
+            $this->Redirect("/?action=user_login&error_login=1");
+        }
+        if ($aUser['id'])
+        {
+            Base::RefreshSession($aUser);
+            if (Base::$aRequest['remember_me']) {
+                $sCookie=Base::RefreshCookie($sLogin,$sPassword,$_SESSION[user][id]);
+                $sQuery="update user set cookie='$sCookie' where login='$sLogin'";
+                Base::$db->Execute($sQuery);
+            }
+            else {
+                if (!Base::$bIgnoreCookie) {
+                    setcookie("user_auth_signature", "",time()+60*60*24*Base::$iRememberDays);
+                    $_COOKIE[user_auth_signature]="";
+                    $sQuery="update user set cookie='' where login='$sLogin'";
+                    Base::$db->Execute($sQuery);
+                }
+            }
+        }
+        if (!$_SESSION['user']['isUser']) {
+            $this->Redirect("/?action=user_login&error_login=1");
+        }
+        return $aUser;
+    }
+
+    public static function AutoCreateUser()
+    {
+        if (!$sLogin) $sLogin=Auth::GenerateLogin();
+        $bCheckedLogin=false;
+        //if (!Db::GetOne("select count(*) from user where login='$sLogin'")) $bCheckedLogin=true;
+        if (Auth::CheckLogin($sLogin)) $bCheckedLogin=true;
+        if (!$bCheckedLogin) for ($i=0;$i<=100;$i++) {
+            $sLogin=Auth::GenerateLogin();
+            if (Auth::CheckLogin($sLogin)) {
+                $bCheckedLogin=true;
+                break;
+            }
+        }
+        if ($bCheckedLogin) {
+            $oUser= new User();
+            Base::$aRequest['login']=$sLogin;
+            Base::$aRequest['password']=Auth::GeneratePassword();
+            if (Base::$aRequest['mobile']) {
+                Base::$aRequest['phone']=Base::$aRequest['operator'].Base::$aRequest['mobile'];
+                Base::$aRequest['data']['phone']=Base::$aRequest['operator'].Base::$aRequest['mobile'];
+            }
+            $oUser->DoNewAccount(true);
+            return Db::GetRow(Base::GetSql('Customer',array('login'=>$sLogin)));
+        }
+        return false;
     }
     
 }
