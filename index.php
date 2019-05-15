@@ -1,4 +1,5 @@
 <?php
+// error_reporting(0);
 
 require_once './class/Base.php';
 $oBase = new Base();
@@ -13,6 +14,9 @@ $oBase->AddRoute([
     '/list_add'			=> 'Home@ListAdd',
     '/list_edit/:any'	=> 'Home@ListAdd',
     '/list_delete/:any'	=> 'Home@ListDelete',
+
+    '/list_mark/:any'	=> 'Home@ListMark',
+    '/list_unmark/:any'	=> 'Home@ListUnmark',
 ]);
 
 $oBase->Process();

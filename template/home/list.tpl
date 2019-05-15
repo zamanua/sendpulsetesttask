@@ -4,11 +4,10 @@
     
 {foreach from=$aDataForTable item=aRow}
     <div class="media text-muted pt-3 border-bottom border-gray">
-      {*<img src='/icons/placeholder.svg' width="32" height="32" background="#6f42c1" color="#6f42c1" class="mr-2 rounded" > *}
 
   	<div class="mr-2 rounded">
 		<div class="custom-control custom-checkbox">
-          <input type="checkbox" class="custom-control-input" id="same-address-{$aRow.id}">
+          <input type="checkbox" class="custom-control-input" id="same-address-{$aRow.id}" {if $aRow.checked==1}checked{/if}>
           <label class="custom-control-label" for="same-address-{$aRow.id}"></label>
         </div>
   	</div>
@@ -21,9 +20,14 @@
 
 
 		<div class="mr-2 rounded">
-				<a href="/list_edit/{$aRow.id}" class="btn btn-outline-success">Edit</a>
-				<a href="#" class="btn btn-primary">Add Sub</a>
-				<a href="/list_delete/{$aRow.id}" class="btn btn-secondary">Delete</a>
+		{if $aRow.checked==0}
+			<a href="/list_mark/{$aRow.id}" class="btn btn-success">Mark</a>
+		{else}
+			<a href="/list_unmark/{$aRow.id}" class="btn btn-info">UnMark</a>
+		{/if}
+			<a href="/list_edit/{$aRow.id}" class="btn btn-warning">Edit</a>
+			<a href="#" class="btn btn-primary">Add Sub</a>
+			<a href="/list_delete/{$aRow.id}" class="btn btn-danger">Delete</a>
 		</div>
 
     </div>
