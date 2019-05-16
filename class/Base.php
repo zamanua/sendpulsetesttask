@@ -137,7 +137,7 @@ class Base
         foreach ($aUser as $key => $value) $_SESSION['user'][$key]=$value;
         setcookie("user_Base_session", "1",time()+60*60*24*Base::$iRememberDays);
     }
-    //---------------------------------------------------------------------------------
+    
     public static function RefreshCookie($sLogin,$sPassword,$iIdCustomer)
     {
         if (Base::$iRememberDays<=10) Base::$iRememberDays=90;
@@ -208,5 +208,6 @@ class Base
         }
         return false;
     }
+
     
 }
