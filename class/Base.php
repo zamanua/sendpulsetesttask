@@ -43,6 +43,8 @@ class Base
 
         require './vendor/bit55/litero/src/Bit55/Litero/Router.php';
         self::$oRouter = Bit55\Litero\Router::fromGlobals();
+
+        echo "auth [".Base::IsAuth()."]";
     }
 
     public static function AddRoute($aRoute) {
@@ -132,8 +134,8 @@ class Base
     
     public static function RefreshSession($aUser)
     {
-        $_SESSION['user']['isUser'.Base::$sProjectName]=true;
-        $_SESSION['user']['isGuest'.Base::$sProjectName]=false;
+        $_SESSION['user']['isUser']=true;
+        $_SESSION['user']['isGuest']=false;
         foreach ($aUser as $key => $value) $_SESSION['user'][$key]=$value;
         setcookie("user_Base_session", "1",time()+60*60*24*Base::$iRememberDays);
     }
@@ -152,59 +154,56 @@ class Base
         return Base::$oDb->GetRow("select * from user where id='".$iId."' ");
     }
 
+    public static function IsUser($sLogin,$sPassword) {
+        return Base::$oDb->GetRow("select * from user where login='".$sLogin."'and password='".md5($sPassword)."' ");
+    }
+
     public static function Login($sLogin,$sPassword)
     {
-        $aUser=Base::IsUser($sLogin,$sPassword,$bIgnoreVisible,$bSalt);
+
+
+        $aUser=Base::IsUser($sLogin,$sPassword);
        
         if (!$aUser['id']) {
-            $this->Redirect("/?action=user_login&error_login=1");
+           // Base::Redirect("/?action=user_login&error_login=1");
         }
         if ($aUser['id'])
         {
             Base::RefreshSession($aUser);
-            if (Base::$aRequest['remember_me']) {
+            // if (Base::$aRequest['remember_me']) {
                 $sCookie=Base::RefreshCookie($sLogin,$sPassword,$_SESSION[user][id]);
                 $sQuery="update user set cookie='$sCookie' where login='$sLogin'";
-                Base::$db->Execute($sQuery);
-            }
-            else {
-                if (!Base::$bIgnoreCookie) {
-                    setcookie("user_auth_signature", "",time()+60*60*24*Base::$iRememberDays);
-                    $_COOKIE[user_auth_signature]="";
-                    $sQuery="update user set cookie='' where login='$sLogin'";
-                    Base::$db->Execute($sQuery);
-                }
-            }
+                Base::$oDb->Execute($sQuery);
+            // }
+            // else {
+            //     if (!Base::$bIgnoreCookie) {
+                    // setcookie("user_auth_signature", "",time()+60*60*24*Base::$iRememberDays);
+                    // $_COOKIE[user_auth_signature]="";
+                    // $sQuery="update user set cookie='' where login='$sLogin'";
+                    // Base::$oDb->Execute($sQuery);
+                // }
+            // }
         }
         if (!$_SESSION['user']['isUser']) {
-            $this->Redirect("/?action=user_login&error_login=1");
+          //  Base::Redirect("/?action=user_login&error_login=1");
         }
         return $aUser;
     }
 
-    public static function AutoCreateUser()
+    public static function CreateUser($sLogin, $sPassword, $sName)
     {
-        if (!$sLogin) $sLogin=Auth::GenerateLogin();
         $bCheckedLogin=false;
-        //if (!Db::GetOne("select count(*) from user where login='$sLogin'")) $bCheckedLogin=true;
-        if (Auth::CheckLogin($sLogin)) $bCheckedLogin=true;
-        if (!$bCheckedLogin) for ($i=0;$i<=100;$i++) {
-            $sLogin=Auth::GenerateLogin();
-            if (Auth::CheckLogin($sLogin)) {
-                $bCheckedLogin=true;
-                break;
-            }
-        }
+        $iIdUserExist=Base::$oDb->GetOne("select id from user where login='".$sLogin."' ");
+        if (!$iIdUserExist) $bCheckedLogin=true;
+       
         if ($bCheckedLogin) {
-            $oUser= new User();
-            Base::$aRequest['login']=$sLogin;
-            Base::$aRequest['password']=Auth::GeneratePassword();
-            if (Base::$aRequest['mobile']) {
-                Base::$aRequest['phone']=Base::$aRequest['operator'].Base::$aRequest['mobile'];
-                Base::$aRequest['data']['phone']=Base::$aRequest['operator'].Base::$aRequest['mobile'];
-            }
-            $oUser->DoNewAccount(true);
-            return Db::GetRow(Base::GetSql('Customer',array('login'=>$sLogin)));
+            $aDataInsert=array(
+                'name'=>$sName,
+                'login'=>$sLogin,
+                'password'=>md5($sPassword)
+            );
+            Base::$oDb->AutoExecute('user',$aDataInsert);
+            return Base::$oDb->GetRow("select * from user where login='".$sLogin."' ");
         }
         return false;
     }

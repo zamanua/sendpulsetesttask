@@ -22,6 +22,9 @@
       <li class="nav-item {if $smarty.request.action=='/user_logout'}active{/if}">
         <a class="nav-link" href="/user_logout">LogOut</a>
       </li>
+      <li class="nav-item {if $smarty.request.action=='/user_registration'}active{/if}">
+        <a class="nav-link" href="/user_registration">user_registration</a>
+      </li>
     </ul>
   </div>
 </nav>

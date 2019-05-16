@@ -94,4 +94,27 @@ class Home
             where id='".$iId."' ");
         Base::Redirect('/list');
     }
+
+    public static function UserRegistration() {
+        print_r($_REQUEST);
+        
+        if(isset($_REQUEST['is_post'])) {
+            $aUser=Base::CreateUser($_REQUEST['data']['login'],$_REQUEST['data']['password'],$_REQUEST['data']['name']);
+            
+            //if($aUser) Base::Redirect('/list');
+        }
+
+        Base::$sContent.=Base::$oTpl->fetch('home/user_registration.tpl');
+    }
+
+    public static function UserLogin() {
+        print_r($_REQUEST);
+
+        if($_REQUEST['is_post']) {
+            $aUser=Base::Login($_REQUEST['login'], $_REQUEST['password']);
+
+            print_r($aUser);
+        }
+       // Base::Redirect("/");
+    }
 }

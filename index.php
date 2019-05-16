@@ -5,6 +5,8 @@ require_once './class/Base.php';
 $oBase = new Base();
 $oBase->Init();
 
+Base::$oDb->debug=true;
+
 require './class/Home.php';
 $oBase->AddRoute([
 	'/'					=> 'Home@Index',
@@ -17,6 +19,9 @@ $oBase->AddRoute([
 
     '/list_mark/:any'	=> 'Home@ListMark',
     '/list_unmark/:any'	=> 'Home@ListUnmark',
+
+    '/user_registration'=> 'Home@UserRegistration',
+    '/user_login'		=> 'Home@UserLogin',
 ]);
 
 $oBase->Process();
