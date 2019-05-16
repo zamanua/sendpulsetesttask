@@ -1,4 +1,8 @@
 {
+	"name": "zamanua/sendpulsetesttask",
+    "type": "project",
+    "description": "SendPulse test task",
+    "license": "MIT",
     "require": {
         "smarty/smarty": "3.*",
         "twitter/bootstrap": "4.3.*",
