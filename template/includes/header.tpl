@@ -6,5 +6,5 @@
   {$aPage.title}
 </title>
 
-{include file='stylesheet.tpl'}
-{*include file='favicons.tpl'*}
+{include file='includes/stylesheet.tpl'}
+{*include file='includes/favicons.tpl'*}

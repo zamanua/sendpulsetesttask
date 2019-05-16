@@ -26,6 +26,12 @@ ALTER TABLE `test`
 
 ALTER TABLE `test`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+
+ALTER TABLE `test` ADD `id_user` INT(11) NOT NULL AFTER `id`, ADD INDEX (`id_user`);
+
+ALTER TABLE `test` ADD `id_parent` INT(11) NOT NULL DEFAULT '0' AFTER `id_user`, ADD INDEX (`id_parent`);
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

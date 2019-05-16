@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
-    {include file='header.tpl'}
+    {include file='includes/header.tpl'}
   </head>
-  <body  {*class="text-center"*} role="main" class="container">
-    {include file='navbar.tpl'}
+  <body  {if $smarty.request.action=='/'}class="text-center"{else} role="main" class="container"{/if} >
+    {include file='includes/navbar.tpl'}
 
     {$sContent}
 
-    {include file='footer.tpl'}
-    {include file='scripts.tpl'}
+    {include file='includes/footer.tpl'}
+    {include file='includes/scripts.tpl'}
   </body>
 </html>

@@ -28,9 +28,7 @@ class Base
         self::$oDb->SetFetchMode(ADODB_FETCH_ASSOC);
         date_default_timezone_set('Europe/Kiev');
         self::$oDb->_Execute("SET `time_zone`='".date('P')."'");
-
         // self::$oDb->debug=true;
-
 
         require './vendor/smarty/smarty/libs/Smarty.class.php';
         self::$oTpl = new Smarty;
@@ -39,12 +37,10 @@ class Base
         self::$oTpl->template_dir = './template/';
         self::$oTpl->compile_dir = './template/templates_c/';
 
-
-
         require './vendor/bit55/litero/src/Bit55/Litero/Router.php';
         self::$oRouter = Bit55\Litero\Router::fromGlobals();
 
-        echo "auth [".Base::IsAuth()."]";
+        self::$oTpl->assign('bAuth',Base::IsAuth());
     }
 
     public static function AddRoute($aRoute) {
@@ -87,9 +83,9 @@ class Base
     
     public static function Logout()
     {
-        setcookie("user_Base_signature", "",time()+60*60*24*$this->iRememberDays,'/');
-        $_COOKIE['user_Base_signature']="";
-        setcookie("user_Base_session", "",time()+60*60*24*$this->iRememberDays,'/');
+        setcookie("user_auth_signature", "",time()+60*60*24*Base::$iRememberDays,'/');
+        $_COOKIE['user_auth_signature']="";
+        setcookie("user_Base_session", "",time()+60*60*24*Base::$iRememberDays,'/');
         $_COOKIE['user_Base_session']="";
         $_SESSION['user']="";
         $_SESSION['user']=array();
@@ -100,9 +96,9 @@ class Base
     
     public static function IsAuth()
     {
-        if (($_SESSION['user'] && $_SESSION['user']['isUser']) || Base::IsValidCookie($_COOKIE['user_Base_signature'])) {
+        if ( (isset($_SESSION['user']) && ($_SESSION['user'] && $_SESSION['user']['isUser']) ) || (isset($_COOKIE['user_auth_signature']) && Base::IsValidCookie($_COOKIE['user_auth_signature'])) )  {
             Base::$aUser=Base::GetUserProfile($_SESSION['user']['id']);
-            Base::$sWhere=" and id_user='".Base::$aUser[id]."'";
+            Base::$sWhere=" and id_user='".Base::$aUser['id']."'";
             return true;
         }
         return false;
@@ -145,8 +141,8 @@ class Base
         if (Base::$iRememberDays<=10) Base::$iRememberDays=90;
     
         $sNewCookieValue=md5($sLogin.$sPassword.$iIdCustomer);
-        setcookie("user_Base_signature", $sNewCookieValue,time()+60*60*24*Base::$iRememberDays,'/');
-        $_COOKIE[user_Base_signature] = $sNewCookieValue;
+        setcookie("user_auth_signature", $sNewCookieValue,time()+60*60*24*Base::$iRememberDays,'/');
+        $_COOKIE[user_auth_signature] = $sNewCookieValue;
         return $sNewCookieValue;
     }
 
@@ -165,27 +161,25 @@ class Base
         $aUser=Base::IsUser($sLogin,$sPassword);
        
         if (!$aUser['id']) {
-           // Base::Redirect("/?action=user_login&error_login=1");
+           Base::Redirect("/user_logout");
         }
         if ($aUser['id'])
         {
             Base::RefreshSession($aUser);
-            // if (Base::$aRequest['remember_me']) {
+            if ($_REQUEST['remember_me']) {
                 $sCookie=Base::RefreshCookie($sLogin,$sPassword,$_SESSION[user][id]);
                 $sQuery="update user set cookie='$sCookie' where login='$sLogin'";
                 Base::$oDb->Execute($sQuery);
-            // }
-            // else {
-            //     if (!Base::$bIgnoreCookie) {
-                    // setcookie("user_auth_signature", "",time()+60*60*24*Base::$iRememberDays);
-                    // $_COOKIE[user_auth_signature]="";
-                    // $sQuery="update user set cookie='' where login='$sLogin'";
-                    // Base::$oDb->Execute($sQuery);
-                // }
-            // }
+            }
+            else {
+                setcookie("user_auth_signature", "",time()+60*60*24*Base::$iRememberDays);
+                $_COOKIE[user_auth_signature]="";
+                $sQuery="update user set cookie='' where login='$sLogin'";
+                Base::$oDb->Execute($sQuery);
+            }
         }
         if (!$_SESSION['user']['isUser']) {
-          //  Base::Redirect("/?action=user_login&error_login=1");
+           Base::Redirect("/user_logout");
         }
         return $aUser;
     }
@@ -208,5 +202,11 @@ class Base
         return false;
     }
 
-    
+    public static function NeedAuth() {
+        if(Base::IsAuth()) {
+            //true
+        } else {
+            Base::Redirect("/user_logout");
+        }
+    }
 }
